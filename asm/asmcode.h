@@ -198,8 +198,8 @@ class asmcode
     struct instruction
       {
       operation oper;
-      operand operand1, operand2, operand3, operand4;
-      uint64_t operand1_mem, operand2_mem, operand3_mem, operand4_mem;
+      operand operand1, operand2, operand3;
+      uint64_t operand1_mem, operand2_mem, operand3_mem;
       std::string text;
 
       ASSEMBLER_API instruction();
@@ -212,8 +212,7 @@ class asmcode
       ASSEMBLER_API instruction(operation op, operand op1, uint64_t op1_mem, operand op2);
       ASSEMBLER_API instruction(operation op, operand op1, uint64_t op1_mem, operand op2, uint64_t op2_mem);
       ASSEMBLER_API instruction(operation op, operand op1, operand op2, uint64_t op2_mem);
-      ASSEMBLER_API instruction(operation op, operand op1, operand op2, operand op3, uint64_t op3_mem);
-      ASSEMBLER_API instruction(operation op, operand op1, operand op2, operand op3, operand op4, uint64_t op4_mem);
+      ASSEMBLER_API instruction(operation op, operand op1, operand op2, operand op3, uint64_t op3_mem);      
       ASSEMBLER_API instruction(operation op, const std::string& text);
       ASSEMBLER_API instruction(operation op, operand op1, const std::string& text);
       ASSEMBLER_API instruction(operation op, operand op1, operand op2, const std::string& text);

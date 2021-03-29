@@ -248,7 +248,6 @@ void* assemble(uint64_t& size, first_pass_data& d, asmcode& code, const std::map
   {
   d.external_to_address.clear();
   d.label_to_address.clear();
-  d.dq_to_pair_offset_value.clear();
   first_pass(d, code, externals);
 
   void *compiled_func;
@@ -268,13 +267,6 @@ void* assemble(uint64_t& size, first_pass_data& d, asmcode& code, const std::map
   if (size_used != d.size)
     {
     throw std::logic_error("error: error in size computation.");
-    }
-
-  for (auto it = d.dq_to_pair_offset_value.begin(); it != d.dq_to_pair_offset_value.end(); ++it)
-    {
-    uint64_t offset = it->second.first;
-    uint64_t value = it->second.second;
-    *(uint64_t*)(func_end + offset) = value;
     }
 
   size = d.size + d.data_size;
