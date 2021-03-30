@@ -43,6 +43,12 @@ namespace
   */
   uint64_t fill_vm_bytecode(const asmcode::instruction& instr, uint8_t* opcode_stream)
     {  
+    switch (instr.oper)
+      {
+      case asmcode::LABEL: return 0;
+      case asmcode::LABEL_ALIGNED: return 0;
+      default: break;
+      }
     opcode_stream[0] = (uint8_t)instr.oper;
     opcode_stream[1] = (uint8_t)instr.operand1;
     opcode_stream[2] = (uint8_t)instr.operand2;
@@ -59,6 +65,13 @@ namespace
       else
         op1mem = 4;
       }
+
+    if (op1mem < 3)
+      {
+      if (instr.oper == asmcode::CALL)
+        op1mem = 3;
+      }
+
     if (instr.operand2_mem != 0)
       {
       if (is_8_bit(instr.operand2_mem))
@@ -246,7 +259,7 @@ namespace
             int64_t address = (int64_t)it_label->second;
             int64_t current = (int64_t)(func - start);
             instr.operand1 = asmcode::NUMBER;
-            instr.operand1_mem = (int64_t(address - current - 5));
+            instr.operand1_mem = (int64_t(address - current));
             }
           else
             throw std::logic_error("second_pass error: call target does not exist");
@@ -630,6 +643,26 @@ namespace
       }
     };
 
+  struct AndOper
+    {
+    static void apply(uint64_t& left, uint64_t& right)
+      {
+      left &= right;
+      }
+    static void apply(uint64_t& left, uint8_t& right)
+      {
+      left &= (uint64_t)right;
+      }
+    static void apply(uint8_t& left, uint8_t& right)
+      {
+      left &= right;
+      }
+    static void apply(uint8_t& left, uint64_t& right)
+      {
+      left &= (uint8_t)right;
+      }
+    };
+
   struct MovOper
     {
     static void apply(uint64_t& left, uint64_t& right)
@@ -647,6 +680,66 @@ namespace
     static void apply(uint8_t& left, uint64_t& right)
       {
       left = (uint8_t)right;
+      }
+    };
+
+  struct OrOper
+    {
+    static void apply(uint64_t& left, uint64_t& right)
+      {
+      left |= right;
+      }
+    static void apply(uint64_t& left, uint8_t& right)
+      {
+      left |= (uint64_t)right;
+      }
+    static void apply(uint8_t& left, uint8_t& right)
+      {
+      left |= right;
+      }
+    static void apply(uint8_t& left, uint64_t& right)
+      {
+      left |= (uint8_t)right;
+      }
+    };
+
+  struct SubOper
+    {
+    static void apply(uint64_t& left, uint64_t& right)
+      {
+      left -= right;
+      }
+    static void apply(uint64_t& left, uint8_t& right)
+      {
+      left -= (uint64_t)right;
+      }
+    static void apply(uint8_t& left, uint8_t& right)
+      {
+      left -= right;
+      }
+    static void apply(uint8_t& left, uint64_t& right)
+      {
+      left -= (uint8_t)right;
+      }
+    };
+
+  struct XorOper
+    {
+    static void apply(uint64_t& left, uint64_t& right)
+      {
+      left ^= right;
+      }
+    static void apply(uint64_t& left, uint8_t& right)
+      {
+      left ^= (uint64_t)right;
+      }
+    static void apply(uint8_t& left, uint8_t& right)
+      {
+      left ^= right;
+      }
+    static void apply(uint8_t& left, uint64_t& right)
+      {
+      left ^= (uint8_t)right;
       }
     };
 
@@ -704,7 +797,6 @@ void run_bytecode(const uint8_t* bytecode, uint64_t size, registers& regs)
     uint64_t operand1_mem;
     uint64_t operand2_mem;
     uint64_t sz = disassemble_bytecode(op, operand1, operand2, operand1_mem, operand2_mem, bytecode_ptr);
-    bytecode_ptr += sz;
     switch (op)
       {
       case asmcode::ADD:
@@ -712,9 +804,35 @@ void run_bytecode(const uint8_t* bytecode, uint64_t size, registers& regs)
       execute_operation<AddOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
       break;
       }
+      case asmcode::AND:
+      {
+      execute_operation<AndOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
+      break;
+      }
+      case asmcode::CALL:
+      {
+      uint8_t call_mem_size = bytecode_ptr[3] & 15;
+      if (call_mem_size == 3) // local call
+        {
+        regs.rsp -= 8;
+        *((uint64_t*)regs.rsp) = (uint64_t)(bytecode_ptr+sz); // save address right after call on stack
+        bytecode_ptr += operand1_mem;
+        sz = 0;
+        }
+      else // external call
+        {
+        throw std::logic_error("external call not implemented");
+        }
+      break;
+      }
       case asmcode::MOV:
       {
       execute_operation<MovOper>(operand1, operand2, operand1_mem, operand2_mem, regs);      
+      break;
+      }
+      case asmcode::OR:
+      {
+      execute_operation<OrOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
       break;
       }
       case asmcode::RET:
@@ -723,10 +841,23 @@ void run_bytecode(const uint8_t* bytecode, uint64_t size, registers& regs)
       regs.rsp += 8; // to check, might need to pop more
       if (address == 0xffffffffffffffff) // we're at the end of this bytecode function call
         return;
+      bytecode_ptr = (const uint8_t*)address;
+      sz = 0;
+      break;
+      }
+      case asmcode::SUB:
+      {
+      execute_operation<SubOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
+      break;
+      }
+      case asmcode::XOR:
+      {
+      execute_operation<XorOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
       break;
       }
       default: throw std::logic_error("not implemented yet!");
       }
+    bytecode_ptr += sz;
     }
   }
 
