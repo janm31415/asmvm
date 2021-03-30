@@ -96,87 +96,76 @@ void asmcode::stream(std::ostream& out) const
     }
   }
 
-asmcode::instruction::instruction() : oper(NOP), operand1(EMPTY), operand2(EMPTY), operand3(EMPTY), operand1_mem(0), operand2_mem(0), operand3_mem(0)
+asmcode::instruction::instruction() : oper(NOP), operand1(EMPTY), operand2(EMPTY), operand1_mem(0), operand2_mem(0)
   {
   }
 
-asmcode::instruction::instruction(const std::string& txt) : oper(COMMENT), operand1(EMPTY), operand2(EMPTY), operand3(EMPTY), operand1_mem(0), operand2_mem(0), operand3_mem(0), text(txt)
+asmcode::instruction::instruction(const std::string& txt) : oper(COMMENT), operand1(EMPTY), operand2(EMPTY), operand1_mem(0), operand2_mem(0), text(txt)
   {
   }
 
-asmcode::instruction::instruction(operation op) : oper(op), operand1(EMPTY), operand2(EMPTY), operand3(EMPTY), operand1_mem(0), operand2_mem(0), operand3_mem(0)
+asmcode::instruction::instruction(operation op) : oper(op), operand1(EMPTY), operand2(EMPTY), operand1_mem(0), operand2_mem(0)
   {
   }
 
-asmcode::instruction::instruction(operation op, operand op1) : oper(op), operand1(op1), operand2(EMPTY), operand3(EMPTY), operand1_mem(0), operand2_mem(0), operand3_mem(0)
-  {
-
-  }
-
-asmcode::instruction::instruction(operation op, operand op1, operand op2) : oper(op), operand1(op1), operand2(op2), operand3(EMPTY), operand1_mem(0), operand2_mem(0), operand3_mem(0)
+asmcode::instruction::instruction(operation op, operand op1) : oper(op), operand1(op1), operand2(EMPTY), operand1_mem(0), operand2_mem(0)
   {
 
   }
 
-asmcode::instruction::instruction(operation op, operand op1, operand op2, operand op3) : oper(op), operand1(op1), operand2(op2), operand3(op3), operand1_mem(0), operand2_mem(0), operand3_mem(0)
+asmcode::instruction::instruction(operation op, operand op1, operand op2) : oper(op), operand1(op1), operand2(op2), operand1_mem(0), operand2_mem(0)
   {
 
   }
 
-asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem) : oper(op), operand1(op1), operand2(EMPTY), operand3(EMPTY), operand1_mem(op1_mem), operand2_mem(0), operand3_mem(0)
+asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem) : oper(op), operand1(op1), operand2(EMPTY), operand1_mem(op1_mem), operand2_mem(0)
   {
 
   }
 
-asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem, operand op2) : oper(op), operand1(op1), operand2(op2), operand3(EMPTY), operand1_mem(op1_mem), operand2_mem(0), operand3_mem(0)
+asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem, operand op2) : oper(op), operand1(op1), operand2(op2), operand1_mem(op1_mem), operand2_mem(0)
   {
 
   }
 
-asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem, operand op2, uint64_t op2_mem) : oper(op), operand1(op1), operand2(op2), operand3(EMPTY), operand1_mem(op1_mem), operand2_mem(op2_mem), operand3_mem(0)
+asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem, operand op2, uint64_t op2_mem) : oper(op), operand1(op1), operand2(op2), operand1_mem(op1_mem), operand2_mem(op2_mem)
   {
   }
 
-asmcode::instruction::instruction(operation op, operand op1, operand op2, uint64_t op2_mem) : oper(op), operand1(op1), operand2(op2), operand3(EMPTY), operand1_mem(0), operand2_mem(op2_mem), operand3_mem(0)
-  {
-
-  }
-
-asmcode::instruction::instruction(operation op, operand op1, operand op2, operand op3, uint64_t op3_mem) : oper(op), operand1(op1), operand2(op2), operand3(op3), operand1_mem(0), operand2_mem(0), operand3_mem(op3_mem)
-  {
-
-  }
-
-asmcode::instruction::instruction(operation op, const std::string& txt) : oper(op), operand1(EMPTY), operand2(EMPTY), operand3(EMPTY), operand1_mem(0), operand2_mem(0), operand3_mem(0), text(txt)
+asmcode::instruction::instruction(operation op, operand op1, operand op2, uint64_t op2_mem) : oper(op), operand1(op1), operand2(op2), operand1_mem(0), operand2_mem(op2_mem)
   {
   }
 
-asmcode::instruction::instruction(operation op, operand op1, const std::string& txt) : oper(op), operand1(op1), operand2(EMPTY), operand3(EMPTY), operand1_mem(0), operand2_mem(0), operand3_mem(0), text(txt)
+asmcode::instruction::instruction(operation op, const std::string& txt) : oper(op), operand1(EMPTY), operand2(EMPTY), operand1_mem(0), operand2_mem(0), text(txt)
+  {
+  }
+
+asmcode::instruction::instruction(operation op, operand op1, const std::string& txt) : oper(op), operand1(op1), operand2(EMPTY), operand1_mem(0), operand2_mem(0), text(txt)
   {
 
   }
 
-asmcode::instruction::instruction(operation op, operand op1, operand op2, const std::string& txt) : oper(op), operand1(op1), operand2(op2), operand3(EMPTY), operand1_mem(0), operand2_mem(0), operand3_mem(0), text(txt)
+asmcode::instruction::instruction(operation op, operand op1, operand op2, const std::string& txt) : oper(op), operand1(op1), operand2(op2), operand1_mem(0), operand2_mem(0), text(txt)
   {
 
   }
 
-asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem, const std::string& txt) : oper(op), operand1(op1), operand2(EMPTY), operand3(EMPTY), operand1_mem(op1_mem), operand2_mem(0), operand3_mem(0), text(txt)
+asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem, const std::string& txt) : oper(op), operand1(op1), operand2(EMPTY), operand1_mem(op1_mem), operand2_mem(0), text(txt)
   {
 
   }
 
-asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem, operand op2, const std::string& txt) : oper(op), operand1(op1), operand2(op2), operand3(EMPTY), operand1_mem(op1_mem), operand2_mem(0), operand3_mem(0), text(txt)
+asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem, operand op2, const std::string& txt) : oper(op), operand1(op1), operand2(op2), operand1_mem(op1_mem), operand2_mem(0), text(txt)
   {
 
   }
 
-asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem, operand op2, uint64_t op2_mem, const std::string& txt) : oper(op), operand1(op1), operand2(op2), operand3(EMPTY), operand1_mem(op1_mem), operand2_mem(op2_mem), operand3_mem(0), text(txt)
+asmcode::instruction::instruction(operation op, operand op1, uint64_t op1_mem, operand op2, uint64_t op2_mem, const std::string& txt) : oper(op), operand1(op1), operand2(op2), operand1_mem(op1_mem), operand2_mem(op2_mem), text(txt)
   {
 
   }
 
-asmcode::instruction::instruction(operation op, operand op1, operand op2, uint64_t op2_mem, const std::string& txt) : oper(op), operand1(op1), operand2(op2), operand3(EMPTY), operand1_mem(0), operand2_mem(op2_mem), operand3_mem(0), text(txt)
+asmcode::instruction::instruction(operation op, operand op1, operand op2, uint64_t op2_mem, const std::string& txt) : oper(op), operand1(op1), operand2(op2), operand1_mem(0), operand2_mem(op2_mem), text(txt)
   {
 
   }
@@ -513,10 +502,6 @@ void asmcode::instruction::stream(std::ostream& out) const
     if (operand2 != asmcode::EMPTY)
       {
       out << ", " << _operand2string(operand2, operand2_mem, text);
-      }
-    if (operand3 != asmcode::EMPTY)
-      {
-      out << ", " << _operand2string(operand3, operand3_mem, text);
       }
     out << std::endl;
     break;
@@ -1070,7 +1055,7 @@ namespace
       opcodes.push_back(op);
       }
 
-    opcode find_opcode(opcode::opcode_operand_type op1, opcode::opcode_operand_type op2, opcode::opcode_operand_type op3) const
+    opcode find_opcode(opcode::opcode_operand_type op1, opcode::opcode_operand_type op2) const
       {
       //auto it = std::find_if(opcodes.begin(), opcodes.end(), [&](const opcode& op) { return ((op.operand_1 & op1) == op.operand_1) && ((op.operand_2 & op2) == op.operand_2); });
 
@@ -1079,7 +1064,7 @@ namespace
         {
         //if (((op.operand_1 & op1) == op.operand_1) && ((op.operand_2 & op2) == op.operand_2))
         //  matches.push_back(op);
-        if (((op.operand_1 & op1) || (op.operand_1 == op1)) && ((op.operand_2 & op2) || (op.operand_2 == op2)) && ((op.operand_3 & op3) || (op.operand_3 == op3)))
+        if (((op.operand_1 & op1) || (op.operand_1 == op1)) && ((op.operand_2 & op2) || (op.operand_2 == op2)))
           matches.push_back(op);
         }
 
@@ -2091,7 +2076,7 @@ namespace
     return opcode::none;
     }
 
-  uint64_t fill_default(uint8_t* opcode_stream, asmcode::instruction code, opcode o, opcode::opcode_operand_type op1d, opcode::opcode_operand_type op2d, opcode::opcode_operand_type op3d)
+  uint64_t fill_default(uint8_t* opcode_stream, asmcode::instruction code, opcode o, opcode::opcode_operand_type op1d, opcode::opcode_operand_type op2d)
     {    
 
     uint8_t* stream = opcode_stream;
@@ -2247,20 +2232,6 @@ namespace
           push4byte(stream, (uint32_t)code.operand2_mem);
         }
       }
-    if (is_immediate_operand_type(op3d))
-      {
-      switch (o.operand_3)
-        {
-        case opcode::rm8:
-        case opcode::imm8: push1byte(stream, (uint8_t)code.operand3_mem); break;
-        case opcode::rm16:
-        case opcode::imm16: push2byte(stream, (uint16_t)code.operand3_mem); break;
-        case opcode::rm32:
-        case opcode::imm32: push4byte(stream, (uint32_t)code.operand3_mem); break;
-        case opcode::rm64:
-        case opcode::imm64: push8byte(stream, (uint64_t)code.operand3_mem); break;
-        }
-      }
     if (o.use_postfix)
       push1byte(stream, o.postfix);
 
@@ -2286,10 +2257,9 @@ namespace
     {
     auto op1d = get_opcode_operand_type(code.operand1, code.operand1_mem);
     auto op2d = get_opcode_operand_type(code.operand2, code.operand2_mem);
-    auto op3d = get_opcode_operand_type(code.operand3, code.operand3_mem);
-    auto o = table.find_opcode(op1d, op2d, op3d);
+    auto o = table.find_opcode(op1d, op2d);
 
-    return fill_default(opcode_stream, code, o, op1d, op2d, op3d);      
+    return fill_default(opcode_stream, code, o, op1d, op2d);      
     }
 
   std::map<std::string, opcode_table> g_table = make_opcode_table();

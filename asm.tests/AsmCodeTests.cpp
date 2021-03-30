@@ -4,7 +4,7 @@
 
 #include "AsmCodeTests.h"
 #include <stdint.h>
-#include <asm/asmcode.h>
+#include "asm/asmcode.h"
 #ifdef _WIN32
 #include <windows.h>
 #else

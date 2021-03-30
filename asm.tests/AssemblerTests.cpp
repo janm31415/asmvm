@@ -4,7 +4,7 @@
 
 #include "AssemblerTests.h"
 #include <stdint.h>
-#include <asm/assembler.h>
+#include "asm/assembler.h"
 #ifdef _WIN32
 #include <windows.h>
 #endif
