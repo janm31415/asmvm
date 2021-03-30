@@ -370,4 +370,364 @@ void free_bytecode(void* f, uint64_t size)
   delete[] f;
   }
 
+
+  /*
+  byte 1: operation opcode: equal to (int)asmcode::operation value of instr.oper
+  byte 2: first operand: equal to (int)asmcode::operand of instr.operand1
+  byte 3: second operand: equal to (int)asmcode::operand of instr.operand2
+  byte 4: information on operand1_mem and operand2_mem
+          First four bits equal to: 0 => instr.operand1_mem equals zero
+                                  : 1 => instr.operand1_mem needs 8 bits
+                                  : 2 => instr.operand1_mem needs 16 bits
+                                  : 3 => instr.operand1_mem needs 32 bits
+                                  : 4 => instr.operand1_mem needs 64 bits
+          Last four bits equal to : 0 => instr.operand2_mem equals zero
+                                  : 1 => instr.operand2_mem needs 8 bits
+                                  : 2 => instr.operand2_mem needs 16 bits
+                                  : 3 => instr.operand2_mem needs 32 bits
+                                  : 4 => instr.operand2_mem needs 64 bits
+  byte 5+: instr.operand1_mem using as many bytes as warranted by byte 4, followed by instr.operand2_mem using as many bytes as warranted by byte4.
+  */
+uint64_t disassemble_bytecode(asmcode::operation& op,
+  asmcode::operand& operand1,
+  asmcode::operand& operand2,
+  uint64_t& operand1_mem,
+  uint64_t& operand2_mem,
+  const uint8_t* bytecode)
+  {
+  op = (asmcode::operation)bytecode[0];
+  operand1 = (asmcode::operand)bytecode[1];
+  operand2 = (asmcode::operand)bytecode[2];
+  uint8_t op1mem = bytecode[3] & 15;
+  uint8_t op2mem = bytecode[3] >> 4;
+  uint64_t sz = 4;
+  switch (op1mem)
+    {
+    case 1: operand1_mem = bytecode[sz++]; break;
+    case 2: operand1_mem = *reinterpret_cast<const uint16_t*>(bytecode + sz); sz += 2; break;
+    case 3: operand1_mem = *reinterpret_cast<const uint32_t*>(bytecode + sz); sz += 4; break;
+    case 4: operand1_mem = *reinterpret_cast<const uint64_t*>(bytecode + sz); sz += 8; break;
+    default: operand1_mem = 0; break;
+    }
+  switch (op2mem)
+    {
+    case 1: operand2_mem = bytecode[sz++]; break;
+    case 2: operand2_mem = *reinterpret_cast<const uint16_t*>(bytecode+sz); sz += 2; break;
+    case 3: operand2_mem = *reinterpret_cast<const uint32_t*>(bytecode+sz); sz += 4; break;
+    case 4: operand2_mem = *reinterpret_cast<const uint64_t*>(bytecode+sz); sz += 8; break;
+    default: operand2_mem = 0; break;
+    }
+  return sz;
+  }
+
+registers::registers()
+  {
+  rbp = (uint64_t)(&stack[0]);
+  rsp = (uint64_t)(&stack[256]);
+  }
+
+namespace
+  {
+  uint8_t* get_address_8bit(asmcode::operand oper, uint64_t operand_mem, registers& regs)
+    {
+    switch (oper)
+      {
+      case asmcode::EMPTY: return nullptr;
+      case asmcode::AL: return (uint8_t*)&regs.rax;
+      case asmcode::AH: return (uint8_t*)(((uint8_t*)(&regs.rax)) + 1);
+      case asmcode::BL: return (uint8_t*)&regs.rbx;
+      case asmcode::BH: return (uint8_t*)(((uint8_t*)(&regs.rbx)) + 1);
+      case asmcode::CL: return (uint8_t*)&regs.rcx;
+      case asmcode::CH: return (uint8_t*)(((uint8_t*)(&regs.rcx)) + 1);
+      case asmcode::DL: return (uint8_t*)&regs.rdx;
+      case asmcode::DH: return (uint8_t*)(((uint8_t*)(&regs.rdx)) + 1);
+      case asmcode::RAX: return nullptr;
+      case asmcode::RBX: return nullptr;
+      case asmcode::RCX: return nullptr;
+      case asmcode::RDX: return nullptr;
+      case asmcode::RDI: return nullptr;
+      case asmcode::RSI: return nullptr;
+      case asmcode::RSP: return nullptr;
+      case asmcode::RBP: return nullptr;
+      case asmcode::R8:  return nullptr;
+      case asmcode::R9:  return nullptr;
+      case asmcode::R10: return nullptr;
+      case asmcode::R11: return nullptr;
+      case asmcode::R12: return nullptr;
+      case asmcode::R13: return nullptr;
+      case asmcode::R14: return nullptr;
+      case asmcode::R15: return nullptr;
+      case asmcode::MEM_RAX: return nullptr;
+      case asmcode::MEM_RBX: return nullptr;
+      case asmcode::MEM_RCX: return nullptr;
+      case asmcode::MEM_RDX: return nullptr;
+      case asmcode::MEM_RDI: return nullptr;
+      case asmcode::MEM_RSI: return nullptr;
+      case asmcode::MEM_RSP: return nullptr;
+      case asmcode::MEM_RBP: return nullptr;
+      case asmcode::MEM_R8:  return nullptr;
+      case asmcode::MEM_R9:  return nullptr;
+      case asmcode::MEM_R10: return nullptr;
+      case asmcode::MEM_R11: return nullptr;
+      case asmcode::MEM_R12: return nullptr;
+      case asmcode::MEM_R13: return nullptr;
+      case asmcode::MEM_R14: return nullptr;
+      case asmcode::MEM_R15: return nullptr;
+      case asmcode::BYTE_MEM_RAX: return (uint8_t*)(regs.rax + operand_mem);
+      case asmcode::BYTE_MEM_RBX: return (uint8_t*)(regs.rbx + operand_mem);
+      case asmcode::BYTE_MEM_RCX: return (uint8_t*)(regs.rcx + operand_mem);
+      case asmcode::BYTE_MEM_RDX: return (uint8_t*)(regs.rdx + operand_mem);
+      case asmcode::BYTE_MEM_RDI: return (uint8_t*)(regs.rdi + operand_mem);
+      case asmcode::BYTE_MEM_RSI: return (uint8_t*)(regs.rsi + operand_mem);
+      case asmcode::BYTE_MEM_RSP: return (uint8_t*)(regs.rsp + operand_mem);
+      case asmcode::BYTE_MEM_RBP: return (uint8_t*)(regs.rbp + operand_mem);
+      case asmcode::BYTE_MEM_R8:  return (uint8_t*)(regs.r8 + operand_mem);
+      case asmcode::BYTE_MEM_R9:  return (uint8_t*)(regs.r9 + operand_mem);
+      case asmcode::BYTE_MEM_R10: return (uint8_t*)(regs.r10 + operand_mem);
+      case asmcode::BYTE_MEM_R11: return (uint8_t*)(regs.r11 + operand_mem);
+      case asmcode::BYTE_MEM_R12: return (uint8_t*)(regs.r12 + operand_mem);
+      case asmcode::BYTE_MEM_R13: return (uint8_t*)(regs.r13 + operand_mem);
+      case asmcode::BYTE_MEM_R14: return (uint8_t*)(regs.r14 + operand_mem);
+      case asmcode::BYTE_MEM_R15: return (uint8_t*)(regs.r15 + operand_mem);
+      case asmcode::NUMBER: return nullptr;
+      case asmcode::ST0:  return nullptr;
+      case asmcode::ST1:  return nullptr;
+      case asmcode::ST2:  return nullptr;
+      case asmcode::ST3:  return nullptr;
+      case asmcode::ST4:  return nullptr;
+      case asmcode::ST5:  return nullptr;
+      case asmcode::ST6:  return nullptr;
+      case asmcode::ST7:  return nullptr;
+      case asmcode::XMM0: return nullptr;
+      case asmcode::XMM1: return nullptr;
+      case asmcode::XMM2: return nullptr;
+      case asmcode::XMM3: return nullptr;
+      case asmcode::XMM4: return nullptr;
+      case asmcode::XMM5: return nullptr;
+      case asmcode::XMM6: return nullptr;
+      case asmcode::XMM7: return nullptr;
+      case asmcode::XMM8: return nullptr;
+      case asmcode::XMM9: return nullptr;
+      case asmcode::XMM10:return nullptr;
+      case asmcode::XMM11:return nullptr;
+      case asmcode::XMM12:return nullptr;
+      case asmcode::XMM13:return nullptr;
+      case asmcode::XMM14:return nullptr;
+      case asmcode::XMM15:return nullptr;
+      case asmcode::LABELADDRESS: return nullptr;
+      default: return nullptr;
+      }
+    }
+
+  uint64_t* get_address_64bit(asmcode::operand oper, uint64_t operand_mem, registers& regs)
+    {
+    switch (oper)
+      {
+      case asmcode::EMPTY: return nullptr;
+      case asmcode::AL: return nullptr;
+      case asmcode::AH: return nullptr;
+      case asmcode::BL: return nullptr;
+      case asmcode::BH: return nullptr;
+      case asmcode::CL: return nullptr;
+      case asmcode::CH: return nullptr;
+      case asmcode::DL: return nullptr;
+      case asmcode::DH: return nullptr;
+      case asmcode::RAX: return &regs.rax;
+      case asmcode::RBX: return &regs.rbx;
+      case asmcode::RCX: return &regs.rcx;
+      case asmcode::RDX: return &regs.rdx;
+      case asmcode::RDI: return &regs.rdi;
+      case asmcode::RSI: return &regs.rsi;
+      case asmcode::RSP: return &regs.rsp;
+      case asmcode::RBP: return &regs.rbp;
+      case asmcode::R8:  return &regs.r8;
+      case asmcode::R9:  return &regs.r9;
+      case asmcode::R10: return &regs.r10;
+      case asmcode::R11: return &regs.r11;
+      case asmcode::R12: return &regs.r12;
+      case asmcode::R13: return &regs.r13;
+      case asmcode::R14: return &regs.r14;
+      case asmcode::R15: return &regs.r15;
+      case asmcode::MEM_RAX: return (uint64_t*)(regs.rax+operand_mem);
+      case asmcode::MEM_RBX: return (uint64_t*)(regs.rbx+operand_mem);
+      case asmcode::MEM_RCX: return (uint64_t*)(regs.rcx+operand_mem);
+      case asmcode::MEM_RDX: return (uint64_t*)(regs.rdx+operand_mem);
+      case asmcode::MEM_RDI: return (uint64_t*)(regs.rdi+operand_mem);
+      case asmcode::MEM_RSI: return (uint64_t*)(regs.rsi+operand_mem);
+      case asmcode::MEM_RSP: return (uint64_t*)(regs.rsp+operand_mem);
+      case asmcode::MEM_RBP: return (uint64_t*)(regs.rbp+operand_mem);
+      case asmcode::MEM_R8:  return (uint64_t*)(regs.r8+operand_mem);
+      case asmcode::MEM_R9:  return (uint64_t*)(regs.r9+operand_mem);
+      case asmcode::MEM_R10: return (uint64_t*)(regs.r10+operand_mem);
+      case asmcode::MEM_R11: return (uint64_t*)(regs.r11+operand_mem);
+      case asmcode::MEM_R12: return (uint64_t*)(regs.r12+operand_mem);
+      case asmcode::MEM_R13: return (uint64_t*)(regs.r13+operand_mem);
+      case asmcode::MEM_R14: return (uint64_t*)(regs.r14+operand_mem);
+      case asmcode::MEM_R15: return (uint64_t*)(regs.r15+operand_mem);
+      case asmcode::BYTE_MEM_RAX: return nullptr;
+      case asmcode::BYTE_MEM_RBX: return nullptr;
+      case asmcode::BYTE_MEM_RCX: return nullptr;
+      case asmcode::BYTE_MEM_RDX: return nullptr;
+      case asmcode::BYTE_MEM_RDI: return nullptr;
+      case asmcode::BYTE_MEM_RSI: return nullptr;
+      case asmcode::BYTE_MEM_RSP: return nullptr;
+      case asmcode::BYTE_MEM_RBP: return nullptr;
+      case asmcode::BYTE_MEM_R8:  return nullptr;
+      case asmcode::BYTE_MEM_R9:  return nullptr;
+      case asmcode::BYTE_MEM_R10: return nullptr;
+      case asmcode::BYTE_MEM_R11: return nullptr;
+      case asmcode::BYTE_MEM_R12: return nullptr;
+      case asmcode::BYTE_MEM_R13: return nullptr;
+      case asmcode::BYTE_MEM_R14: return nullptr;
+      case asmcode::BYTE_MEM_R15: return nullptr;
+      case asmcode::NUMBER: return nullptr;
+      case asmcode::ST0:  return nullptr;
+      case asmcode::ST1:  return nullptr;
+      case asmcode::ST2:  return nullptr;
+      case asmcode::ST3:  return nullptr;
+      case asmcode::ST4:  return nullptr;
+      case asmcode::ST5:  return nullptr;
+      case asmcode::ST6:  return nullptr;
+      case asmcode::ST7:  return nullptr;
+      case asmcode::XMM0: return (uint64_t*)(&regs.xmm0);
+      case asmcode::XMM1: return (uint64_t*)(&regs.xmm1);
+      case asmcode::XMM2: return (uint64_t*)(&regs.xmm2);
+      case asmcode::XMM3: return (uint64_t*)(&regs.xmm3);
+      case asmcode::XMM4: return (uint64_t*)(&regs.xmm4);
+      case asmcode::XMM5: return (uint64_t*)(&regs.xmm5);
+      case asmcode::XMM6: return (uint64_t*)(&regs.xmm6);
+      case asmcode::XMM7: return (uint64_t*)(&regs.xmm7);
+      case asmcode::XMM8: return (uint64_t*)(&regs.xmm8);
+      case asmcode::XMM9: return (uint64_t*)(&regs.xmm9);
+      case asmcode::XMM10:return (uint64_t*)(&regs.xmm10);
+      case asmcode::XMM11:return (uint64_t*)(&regs.xmm11);
+      case asmcode::XMM12:return (uint64_t*)(&regs.xmm12);
+      case asmcode::XMM13:return (uint64_t*)(&regs.xmm13);
+      case asmcode::XMM14:return (uint64_t*)(&regs.xmm14);
+      case asmcode::XMM15:return (uint64_t*)(&regs.xmm15);
+      case asmcode::LABELADDRESS: return nullptr;
+      default: return nullptr;
+      }
+    }
+
+  struct AddOper
+    {
+    static void apply(uint64_t& left, uint64_t& right)
+      {
+      left += right;
+      }
+    static void apply(uint64_t& left, uint8_t& right)
+      {
+      left += (uint64_t)right;
+      }
+    static void apply(uint8_t& left, uint8_t& right)
+      {
+      left += right;
+      }
+    static void apply(uint8_t& left, uint64_t& right)
+      {
+      left += (uint8_t)right;
+      }
+    };
+
+  struct MovOper
+    {
+    static void apply(uint64_t& left, uint64_t& right)
+      {
+      left = right;
+      }
+    static void apply(uint64_t& left, uint8_t& right)
+      {
+      left = (uint64_t)right;
+      }
+    static void apply(uint8_t& left, uint8_t& right)
+      {
+      left = right;
+      }
+    static void apply(uint8_t& left, uint64_t& right)
+      {
+      left = (uint8_t)right;
+      }
+    };
+
+  template <class TOper>
+  inline void execute_operation(asmcode::operand operand1,
+                                asmcode::operand operand2,
+                                uint64_t operand1_mem,
+                                uint64_t operand2_mem,
+                                registers& regs)
+    {
+    uint64_t* oprnd1 = get_address_64bit(operand1, operand1_mem, regs);
+    if (oprnd1)
+      {
+      uint64_t* oprnd2 = get_address_64bit(operand2, operand2_mem, regs);
+      if (oprnd2)
+        TOper::apply(*oprnd1, *oprnd2);        
+      else if (operand2 == asmcode::NUMBER)
+        TOper::apply(*oprnd1, operand2_mem);
+      else
+        {
+        uint8_t* oprnd2_8 = get_address_8bit(operand2, operand2_mem, regs);
+        if (oprnd2_8)
+          TOper::apply(*oprnd1, *oprnd2_8);
+        }
+      }
+    else
+      {
+      uint8_t* oprnd1_8 = get_address_8bit(operand1, operand1_mem, regs);
+      if (oprnd1_8)
+        {
+        uint8_t* oprnd2_8 = get_address_8bit(operand2, operand2_mem, regs);
+        if (oprnd2_8)
+          TOper::apply(*oprnd1_8, *oprnd2_8);
+        else if (operand2 == asmcode::NUMBER)
+          TOper::apply(*oprnd1_8, operand2_mem);
+        }
+      }
+    }
+
+  } // namespace
+void run_bytecode(const uint8_t* bytecode, uint64_t size, registers& regs)
+  {
+  (void*)size;
+
+  regs.rsp -= 8;
+  *((uint64_t*)regs.rsp) = 0xffffffffffffffff; // this address means the function call representing this bytecode
+
+  const uint8_t* bytecode_ptr = bytecode;
+
+  for (;;)
+    {
+    asmcode::operation op;
+    asmcode::operand operand1;
+    asmcode::operand operand2;
+    uint64_t operand1_mem;
+    uint64_t operand2_mem;
+    uint64_t sz = disassemble_bytecode(op, operand1, operand2, operand1_mem, operand2_mem, bytecode_ptr);
+    bytecode_ptr += sz;
+    switch (op)
+      {
+      case asmcode::ADD:
+      {
+      execute_operation<AddOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
+      break;
+      }
+      case asmcode::MOV:
+      {
+      execute_operation<MovOper>(operand1, operand2, operand1_mem, operand2_mem, regs);      
+      break;
+      }
+      case asmcode::RET:
+      {
+      uint64_t address = *((uint64_t*)regs.rsp);
+      regs.rsp += 8; // to check, might need to pop more
+      if (address == 0xffffffffffffffff) // we're at the end of this bytecode function call
+        return;
+      break;
+      }
+      default: throw std::logic_error("not implemented yet!");
+      }
+    }
+  }
+
 ASM_END
