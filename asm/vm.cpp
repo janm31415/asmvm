@@ -816,7 +816,8 @@ void run_bytecode(const uint8_t* bytecode, uint64_t size, registers& regs)
         {
         regs.rsp -= 8;
         *((uint64_t*)regs.rsp) = (uint64_t)(bytecode_ptr+sz); // save address right after call on stack
-        bytecode_ptr += operand1_mem;
+        uint32_t local_offset = (uint32_t)operand1_mem;
+        bytecode_ptr += (int32_t)local_offset;
         sz = 0;
         }
       else // external call

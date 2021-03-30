@@ -171,6 +171,36 @@ void test_vm_call()
   free_bytecode(f, size);
   }
 
+void test_vm_call_2()
+  {
+  asmcode code;
+  code.add(asmcode::CALL, "L_label");
+  code.add(asmcode::RET);
+  code.add(asmcode::LABEL, "L_label_2");
+  code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+  code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
+  code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
+  code.add(asmcode::RET);
+  code.add(asmcode::LABEL, "L_label");
+  code.add(asmcode::CALL, "L_label_2");
+  code.add(asmcode::RET);
+  uint64_t size;
+  uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+  registers reg;
+
+  try
+    {
+    run_bytecode(f, size, reg);
+    }
+  catch (std::logic_error e)
+    {
+    std::cout << e.what() << "\n";
+    }
+  TEST_EQ(22, reg.rax);
+  TEST_EQ(12, reg.rcx);
+  free_bytecode(f, size);
+  }
+
 ASM_END
 
 void run_all_vm_tests()
@@ -182,4 +212,5 @@ void run_all_vm_tests()
   test_vm_mov();
   test_vm_add();
   test_vm_call();
+  test_vm_call_2();
   }
