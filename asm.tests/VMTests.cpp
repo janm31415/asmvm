@@ -78,128 +78,260 @@ namespace
 
     free_bytecode(f, size);
     }
-  }
 
-void test_vm_ret()
-  {
-  asmcode code;
-  code.add(asmcode::RET);
-  uint64_t size;
-  uint8_t* f = (uint8_t*)vm_bytecode(size, code);
-  registers reg;
-
-  try {
-    run_bytecode(f, size, reg);
-    }
-  catch (std::logic_error e)
+  void test_vm_nop_bytecode()
     {
-    std::cout << e.what() << "\n";
+    asmcode code;
+    code.add(asmcode::NOP);
+
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    TEST_EQ(1, size);
+    TEST_EQ((int)asmcode::NOP, (int)f[0]);
+
+    asmcode::operation op;
+    asmcode::operand operand1;
+    asmcode::operand operand2;
+    uint64_t operand1_mem;
+    uint64_t operand2_mem;
+    uint64_t sz = disassemble_bytecode(op, operand1, operand2, operand1_mem, operand2_mem, f);
+    TEST_EQ(1, sz);
+    TEST_EQ(asmcode::NOP, op);
+    
+    free_bytecode(f, size);
     }
 
-  free_bytecode(f, size);
-  }
-
-void test_vm_mov()
-  {
-  asmcode code;  
-  code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
-  code.add(asmcode::RET);
-  uint64_t size;
-  uint8_t* f = (uint8_t*)vm_bytecode(size, code);
-  registers reg;
-
-  try {
-    run_bytecode(f, size, reg);
-    }
-  catch (std::logic_error e)
+  void test_vm_ret()
     {
-    std::cout << e.what() << "\n";
+    asmcode code;
+    code.add(asmcode::RET);
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+
+    free_bytecode(f, size);
     }
 
-  TEST_EQ(10, reg.rax);
-
-  free_bytecode(f, size);
-  }
-
-void test_vm_add()
-  {
-  asmcode code;
-  code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
-  code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
-  code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
-  code.add(asmcode::RET);
-  uint64_t size;
-  uint8_t* f = (uint8_t*)vm_bytecode(size, code);
-  registers reg;
-
-  try {
-    run_bytecode(f, size, reg);
-    }
-  catch (std::logic_error e)
+  void test_vm_mov()
     {
-    std::cout << e.what() << "\n";
-    }
-  TEST_EQ(22, reg.rax);
-  TEST_EQ(12, reg.rcx);
-  free_bytecode(f, size);
-  }
+    asmcode code;
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::RET);
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
 
-void test_vm_call()
-  {
-  asmcode code;
-  code.add(asmcode::CALL, "L_label");
-  code.add(asmcode::RET);
-  code.add(asmcode::LABEL, "L_label");
-  code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
-  code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
-  code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
-  code.add(asmcode::RET);
-  uint64_t size;
-  uint8_t* f = (uint8_t*)vm_bytecode(size, code);
-  registers reg;
+    try {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
 
-  try 
-    {
-    run_bytecode(f, size, reg);
-    }
-  catch (std::logic_error e)
-    {
-    std::cout << e.what() << "\n";
-    }
-  TEST_EQ(22, reg.rax);
-  TEST_EQ(12, reg.rcx);
-  free_bytecode(f, size);
-  }
+    TEST_EQ(10, reg.rax);
 
-void test_vm_call_2()
-  {
-  asmcode code;
-  code.add(asmcode::CALL, "L_label");
-  code.add(asmcode::RET);
-  code.add(asmcode::LABEL, "L_label_2");
-  code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
-  code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
-  code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
-  code.add(asmcode::RET);
-  code.add(asmcode::LABEL, "L_label");
-  code.add(asmcode::CALL, "L_label_2");
-  code.add(asmcode::RET);
-  uint64_t size;
-  uint8_t* f = (uint8_t*)vm_bytecode(size, code);
-  registers reg;
+    free_bytecode(f, size);
+    }
 
-  try
+  void test_vm_add()
     {
-    run_bytecode(f, size, reg);
+    asmcode code;
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
+    code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
+    code.add(asmcode::RET);
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(22, reg.rax);
+    TEST_EQ(12, reg.rcx);
+    free_bytecode(f, size);
     }
-  catch (std::logic_error e)
+
+  void test_vm_call()
     {
-    std::cout << e.what() << "\n";
+    asmcode code;
+    code.add(asmcode::CALL, "L_label");
+    code.add(asmcode::RET);
+    code.add(asmcode::LABEL, "L_label");
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
+    code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
+    code.add(asmcode::RET);
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try
+      {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(22, reg.rax);
+    TEST_EQ(12, reg.rcx);
+    free_bytecode(f, size);
     }
-  TEST_EQ(22, reg.rax);
-  TEST_EQ(12, reg.rcx);
-  free_bytecode(f, size);
-  }
+
+  void test_vm_call_2()
+    {
+    asmcode code;
+    code.add(asmcode::CALL, "L_label");
+    code.add(asmcode::RET);
+    code.add(asmcode::LABEL, "L_label_2");
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
+    code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
+    code.add(asmcode::RET);
+    code.add(asmcode::LABEL, "L_label");
+    code.add(asmcode::CALL, "L_label_2");
+    code.add(asmcode::RET);
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try
+      {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(22, reg.rax);
+    TEST_EQ(12, reg.rcx);
+    free_bytecode(f, size);
+    }
+
+  void test_vm_jmp()
+    {
+    asmcode code;
+    code.add(asmcode::JMP, "L_label");
+    code.add(asmcode::LABEL, "L_label");
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
+    code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
+    code.add(asmcode::RET);
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try
+      {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(22, reg.rax);
+    TEST_EQ(12, reg.rcx);
+    free_bytecode(f, size);
+    }
+
+  void test_vm_call_aligned()
+    {
+    asmcode code;   
+    code.add(asmcode::CALL, "L_label");
+    code.add(asmcode::RET);
+    code.add(asmcode::LABEL_ALIGNED, "L_label");
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
+    code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
+    code.add(asmcode::RET);
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try
+      {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(22, reg.rax);
+    TEST_EQ(12, reg.rcx);
+    free_bytecode(f, size);
+    }
+
+  void test_vm_call_aligned_2()
+    {
+    asmcode code;
+    code.add(asmcode::CALL, "L_label");
+    code.add(asmcode::RET);
+    code.add(asmcode::LABEL_ALIGNED, "L_label_2");
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
+    code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
+    code.add(asmcode::RET);
+    code.add(asmcode::LABEL_ALIGNED, "L_label");
+    code.add(asmcode::CALL, "L_label_2");
+    code.add(asmcode::RET);
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try
+      {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(22, reg.rax);
+    TEST_EQ(12, reg.rcx);
+    free_bytecode(f, size);
+    }
+
+  void test_vm_jmp_aligned()
+    {
+    asmcode code;
+    code.add(asmcode::JMP, "L_label");
+    code.add(asmcode::LABEL_ALIGNED, "L_label");
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 12);
+    code.add(asmcode::ADD, asmcode::RAX, asmcode::RCX);
+    code.add(asmcode::RET);
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try
+      {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(22, reg.rax);
+    TEST_EQ(12, reg.rcx);
+    free_bytecode(f, size);
+    }
+
+  } // namespace
 
 ASM_END
 
@@ -208,9 +340,14 @@ void run_all_vm_tests()
   using namespace ASM;
   test_vm_mov_bytecode();
   test_vm_mov_bytecode_2();
+  test_vm_nop_bytecode();
   test_vm_ret();
   test_vm_mov();
   test_vm_add();
   test_vm_call();
   test_vm_call_2();
+  test_vm_jmp();
+  test_vm_call_aligned();
+  test_vm_call_aligned_2();
+  test_vm_jmp_aligned();
   }

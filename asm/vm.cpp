@@ -40,6 +40,8 @@ namespace
                                   : 3 => instr.operand2_mem needs 32 bits
                                   : 4 => instr.operand2_mem needs 64 bits
   byte 5+: instr.operand1_mem using as many bytes as warranted by byte 4, followed by instr.operand2_mem using as many bytes as warranted by byte4.
+
+  exception: NOP is only 1 byte
   */
   uint64_t fill_vm_bytecode(const asmcode::instruction& instr, uint8_t* opcode_stream)
     {  
@@ -47,6 +49,11 @@ namespace
       {
       case asmcode::LABEL: return 0;
       case asmcode::LABEL_ALIGNED: return 0;
+      case asmcode::NOP:
+      {
+      opcode_stream[0] = (uint8_t)instr.oper;
+      return 1;
+      }
       default: break;
       }
     opcode_stream[0] = (uint8_t)instr.oper;
@@ -69,6 +76,8 @@ namespace
     if (op1mem < 3)
       {
       if (instr.oper == asmcode::CALL)
+        op1mem = 3;
+      if (instr.oper == asmcode::JMP)
         op1mem = 3;
       }
 
@@ -282,7 +291,7 @@ namespace
           int64_t address = (int64_t)it2->second;
           int64_t current = (int64_t)(func - start);
           instr.operand1 = asmcode::NUMBER;
-          instr.operand1_mem = (int64_t(address - current - 6));
+          instr.operand1_mem = (int64_t(address - current));
           break;
           }
           case asmcode::JMP:
@@ -295,7 +304,7 @@ namespace
           int64_t address = (int64_t)it2->second;
           int64_t current = (int64_t)(func - start);
           instr.operand1 = asmcode::NUMBER;
-          instr.operand1_mem = (int64_t(address - current - 5));
+          instr.operand1_mem = (int64_t(address - current));
           break;
           }
           case asmcode::JES:
@@ -316,7 +325,7 @@ namespace
           int64_t address = (int64_t)it2->second;
           int64_t current = (int64_t)(func - start);
           instr.operand1 = asmcode::NUMBER;
-          instr.operand1_mem = (int64_t(address - current - 2));
+          instr.operand1_mem = (int64_t(address - current));
           if ((int64_t)instr.operand1_mem > 127 || (int64_t)instr.operand1_mem < -128)
             throw std::logic_error("second_pass error: jump short is too far");
           break;
@@ -400,6 +409,8 @@ void free_bytecode(void* f, uint64_t size)
                                   : 3 => instr.operand2_mem needs 32 bits
                                   : 4 => instr.operand2_mem needs 64 bits
   byte 5+: instr.operand1_mem using as many bytes as warranted by byte 4, followed by instr.operand2_mem using as many bytes as warranted by byte4.
+
+  exception: NOP is only 1 byte
   */
 uint64_t disassemble_bytecode(asmcode::operation& op,
   asmcode::operand& operand1,
@@ -409,6 +420,8 @@ uint64_t disassemble_bytecode(asmcode::operation& op,
   const uint8_t* bytecode)
   {
   op = (asmcode::operation)bytecode[0];
+  if (op == asmcode::NOP)
+    return 1;
   operand1 = (asmcode::operand)bytecode[1];
   operand2 = (asmcode::operand)bytecode[2];
   uint8_t op1mem = bytecode[3] & 15;
@@ -826,11 +839,19 @@ void run_bytecode(const uint8_t* bytecode, uint64_t size, registers& regs)
         }
       break;
       }
+      case asmcode::JMP:
+      {
+      uint32_t local_offset = (uint32_t)operand1_mem;
+      bytecode_ptr += (int32_t)local_offset;
+      sz = 0;
+      break;
+      }
       case asmcode::MOV:
       {
       execute_operation<MovOper>(operand1, operand2, operand1_mem, operand2_mem, regs);      
       break;
       }
+      case asmcode::NOP: break;
       case asmcode::OR:
       {
       execute_operation<OrOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
