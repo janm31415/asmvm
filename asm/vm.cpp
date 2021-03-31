@@ -72,7 +72,11 @@ namespace
       else
         op1mem = 4;
       }
-
+    if (op1mem < 4)
+      {
+      if (instr.operand1 == asmcode::LABELADDRESS)
+        op1mem = 4;
+      }
     if (op1mem < 3)
       {
       if (instr.oper == asmcode::CALL)
@@ -80,7 +84,6 @@ namespace
       if (instr.oper == asmcode::JMP)
         op1mem = 3;
       }
-
     if (instr.operand2_mem != 0)
       {
       if (is_8_bit(instr.operand2_mem))
@@ -90,6 +93,11 @@ namespace
       else if (is_32_bit(instr.operand2_mem))
         op2mem = 3;
       else
+        op2mem = 4;
+      }
+    if (op2mem < 4)
+      {
+      if (instr.operand2 == asmcode::LABELADDRESS)
         op2mem = 4;
       }
     opcode_stream[3] = (uint8_t)(op2mem << 4) | op1mem;
@@ -429,17 +437,17 @@ uint64_t disassemble_bytecode(asmcode::operation& op,
   uint64_t sz = 4;
   switch (op1mem)
     {
-    case 1: operand1_mem = bytecode[sz++]; break;
-    case 2: operand1_mem = *reinterpret_cast<const uint16_t*>(bytecode + sz); sz += 2; break;
-    case 3: operand1_mem = *reinterpret_cast<const uint32_t*>(bytecode + sz); sz += 4; break;
+    case 1: operand1_mem = (int8_t)bytecode[sz++]; break;
+    case 2: operand1_mem = (int16_t)(*reinterpret_cast<const uint16_t*>(bytecode + sz)); sz += 2; break;
+    case 3: operand1_mem = (int32_t)(*reinterpret_cast<const uint32_t*>(bytecode + sz)); sz += 4; break;
     case 4: operand1_mem = *reinterpret_cast<const uint64_t*>(bytecode + sz); sz += 8; break;
     default: operand1_mem = 0; break;
     }
   switch (op2mem)
     {
-    case 1: operand2_mem = bytecode[sz++]; break;
-    case 2: operand2_mem = *reinterpret_cast<const uint16_t*>(bytecode+sz); sz += 2; break;
-    case 3: operand2_mem = *reinterpret_cast<const uint32_t*>(bytecode+sz); sz += 4; break;
+    case 1: operand2_mem = (int8_t)bytecode[sz++]; break;
+    case 2: operand2_mem = (int16_t)(*reinterpret_cast<const uint16_t*>(bytecode+sz)); sz += 2; break;
+    case 3: operand2_mem = (int32_t)(*reinterpret_cast<const uint32_t*>(bytecode+sz)); sz += 4; break;
     case 4: operand2_mem = *reinterpret_cast<const uint64_t*>(bytecode+sz); sz += 8; break;
     default: operand2_mem = 0; break;
     }
@@ -450,6 +458,7 @@ registers::registers()
   {
   rbp = (uint64_t)(&stack[0]);
   rsp = (uint64_t)(&stack[256]);
+  eflags = 0;
   }
 
 namespace
@@ -638,19 +647,19 @@ namespace
 
   struct AddOper
     {
-    static void apply(uint64_t& left, uint64_t& right)
+    static void apply(uint64_t& left, uint64_t right)
       {
       left += right;
       }
-    static void apply(uint64_t& left, uint8_t& right)
+    static void apply(uint64_t& left, uint8_t right)
       {
       left += (uint64_t)right;
       }
-    static void apply(uint8_t& left, uint8_t& right)
+    static void apply(uint8_t& left, uint8_t right)
       {
       left += right;
       }
-    static void apply(uint8_t& left, uint64_t& right)
+    static void apply(uint8_t& left, uint64_t right)
       {
       left += (uint8_t)right;
       }
@@ -658,19 +667,19 @@ namespace
 
   struct AndOper
     {
-    static void apply(uint64_t& left, uint64_t& right)
+    static void apply(uint64_t& left, uint64_t right)
       {
       left &= right;
       }
-    static void apply(uint64_t& left, uint8_t& right)
+    static void apply(uint64_t& left, uint8_t right)
       {
       left &= (uint64_t)right;
       }
-    static void apply(uint8_t& left, uint8_t& right)
+    static void apply(uint8_t& left, uint8_t right)
       {
       left &= right;
       }
-    static void apply(uint8_t& left, uint64_t& right)
+    static void apply(uint8_t& left, uint64_t right)
       {
       left &= (uint8_t)right;
       }
@@ -678,19 +687,19 @@ namespace
 
   struct MovOper
     {
-    static void apply(uint64_t& left, uint64_t& right)
+    static void apply(uint64_t& left, uint64_t right)
       {
       left = right;
       }
-    static void apply(uint64_t& left, uint8_t& right)
+    static void apply(uint64_t& left, uint8_t right)
       {
       left = (uint64_t)right;
       }
-    static void apply(uint8_t& left, uint8_t& right)
+    static void apply(uint8_t& left, uint8_t right)
       {
       left = right;
       }
-    static void apply(uint8_t& left, uint64_t& right)
+    static void apply(uint8_t& left, uint64_t right)
       {
       left = (uint8_t)right;
       }
@@ -698,39 +707,107 @@ namespace
 
   struct OrOper
     {
-    static void apply(uint64_t& left, uint64_t& right)
+    static void apply(uint64_t& left, uint64_t right)
       {
       left |= right;
       }
-    static void apply(uint64_t& left, uint8_t& right)
+    static void apply(uint64_t& left, uint8_t right)
       {
       left |= (uint64_t)right;
       }
-    static void apply(uint8_t& left, uint8_t& right)
+    static void apply(uint8_t& left, uint8_t right)
       {
       left |= right;
       }
-    static void apply(uint8_t& left, uint64_t& right)
+    static void apply(uint8_t& left, uint64_t right)
       {
       left |= (uint8_t)right;
       }
     };
 
+  struct ShlOper
+    {
+    static void apply(uint64_t& left, uint64_t right)
+      {
+      left <<= right;
+      }
+    static void apply(uint64_t& left, uint8_t right)
+      {
+      left <<= (uint64_t)right;
+      }
+    static void apply(uint8_t& left, uint8_t right)
+      {
+      left <<= right;
+      }
+    static void apply(uint8_t& left, uint64_t right)
+      {
+      left <<= (uint8_t)right;
+      }
+    };
+
+  struct SarOper
+    {
+    static void apply(uint64_t& left, uint64_t right)
+      {
+      int64_t l = (int64_t)left;
+      l >>= right;
+      left = (uint64_t)l;
+      }
+    static void apply(uint64_t& left, uint8_t right)
+      {
+      int64_t l = (int64_t)left;
+      l >>= (uint64_t)right;
+      left = (uint64_t)l;
+      }
+    static void apply(uint8_t& left, uint8_t right)
+      {
+      int8_t l = (int8_t)left;
+      l >>= right;
+      left = (uint8_t)l;
+      }
+    static void apply(uint8_t& left, uint64_t right)
+      {
+      int8_t l = (int8_t)left;
+      l >>= (uint8_t)right;
+      left = (uint8_t)l;
+      }
+    };
+
+  struct ShrOper
+    {
+    static void apply(uint64_t& left, uint64_t right)
+      {
+      left >>= right;
+      }
+    static void apply(uint64_t& left, uint8_t right)
+      {
+      left >>= (uint64_t)right;
+      }
+    static void apply(uint8_t& left, uint8_t right)
+      {
+      left >>= right;
+      }
+    static void apply(uint8_t& left, uint64_t right)
+      {
+      left >>= (uint8_t)right;
+      }
+    };
+
   struct SubOper
     {
-    static void apply(uint64_t& left, uint64_t& right)
+    static void apply(uint64_t& left, uint64_t right)
       {
       left -= right;
       }
-    static void apply(uint64_t& left, uint8_t& right)
+    static void apply(uint64_t& left, uint8_t right)
       {
       left -= (uint64_t)right;
       }
-    static void apply(uint8_t& left, uint8_t& right)
+    static void apply(uint8_t& left, uint8_t right)
       {
       left -= right;
       }
-    static void apply(uint8_t& left, uint64_t& right)
+    static void apply(uint8_t& left, uint64_t right)
       {
       left -= (uint8_t)right;
       }
@@ -738,19 +815,19 @@ namespace
 
   struct XorOper
     {
-    static void apply(uint64_t& left, uint64_t& right)
+    static void apply(uint64_t& left, uint64_t right)
       {
       left ^= right;
       }
-    static void apply(uint64_t& left, uint8_t& right)
+    static void apply(uint64_t& left, uint8_t right)
       {
       left ^= (uint64_t)right;
       }
-    static void apply(uint8_t& left, uint8_t& right)
+    static void apply(uint8_t& left, uint8_t right)
       {
       left ^= right;
       }
-    static void apply(uint8_t& left, uint64_t& right)
+    static void apply(uint8_t& left, uint64_t right)
       {
       left ^= (uint8_t)right;
       }
@@ -769,7 +846,7 @@ namespace
       uint64_t* oprnd2 = get_address_64bit(operand2, operand2_mem, regs);
       if (oprnd2)
         TOper::apply(*oprnd1, *oprnd2);        
-      else if (operand2 == asmcode::NUMBER)
+      else if (operand2 == asmcode::NUMBER || operand2 == asmcode::LABELADDRESS)
         TOper::apply(*oprnd1, operand2_mem);
       else
         {
@@ -792,6 +869,78 @@ namespace
       }
     }
 
+  template <class TOper>
+  inline uint64_t execute_operation_const(asmcode::operand operand1,
+    asmcode::operand operand2,
+    uint64_t operand1_mem,
+    uint64_t operand2_mem,
+    registers& regs)
+    {
+    uint64_t* oprnd1 = get_address_64bit(operand1, operand1_mem, regs);
+    if (oprnd1)
+      {
+      uint64_t left = *oprnd1;
+      uint64_t* oprnd2 = get_address_64bit(operand2, operand2_mem, regs);
+      if (oprnd2)
+        {
+        TOper::apply(left, *oprnd2);
+        return left;
+        }
+      else if (operand2 == asmcode::NUMBER || operand2 == asmcode::LABELADDRESS)
+        {
+        TOper::apply(left, operand2_mem);
+        return left;
+        }
+      else
+        {
+        uint8_t* oprnd2_8 = get_address_8bit(operand2, operand2_mem, regs);
+        if (oprnd2_8)
+          {
+          TOper::apply(left, *oprnd2_8);
+          return left;
+          }
+        }
+      }
+    else
+      {
+      uint8_t* oprnd1_8 = get_address_8bit(operand1, operand1_mem, regs);
+      uint8_t left = *oprnd1_8;
+      if (oprnd1_8)
+        {
+        uint8_t* oprnd2_8 = get_address_8bit(operand2, operand2_mem, regs);
+        if (oprnd2_8)
+          {
+          TOper::apply(left, *oprnd2_8);
+          return (uint64_t)left;
+          }
+        else if (operand2 == asmcode::NUMBER)
+          {
+          TOper::apply(left, operand2_mem);
+          return (uint64_t)left;
+          }
+        }
+      }
+    throw std::logic_error("Invalid bytecode");
+    }
+
+  void set_eflags(int64_t cmp_value, registers& regs)
+    {
+    if (cmp_value == 0)
+      {
+      regs.eflags |= zero_flag;
+      regs.eflags &= ~sign_flag;
+      }
+    else if (cmp_value < 0)
+      {      
+      regs.eflags |= sign_flag;
+      regs.eflags &= ~zero_flag;
+      }
+    else
+      {
+      regs.eflags &= ~sign_flag;
+      regs.eflags &= ~zero_flag;
+      }
+    }
   } // namespace
 void run_bytecode(const uint8_t* bytecode, uint64_t size, registers& regs)
   {
@@ -839,11 +988,26 @@ void run_bytecode(const uint8_t* bytecode, uint64_t size, registers& regs)
         }
       break;
       }
+      case asmcode::CMP:
+      {
+      int64_t temp = (int64_t)execute_operation_const<SubOper>(operand1, operand2, operand1_mem, operand2_mem, regs);      
+      set_eflags(temp, regs);
+      break;
+      }
       case asmcode::JMP:
       {
-      uint32_t local_offset = (uint32_t)operand1_mem;
-      bytecode_ptr += (int32_t)local_offset;
-      sz = 0;
+      if (operand1 == asmcode::NUMBER)
+        {
+        uint32_t local_offset = (uint32_t)operand1_mem;
+        bytecode_ptr += (int32_t)local_offset;
+        sz = 0;
+        }
+      else
+        {
+        uint64_t* oprnd1 = get_address_64bit(operand1, operand1_mem, regs);
+        bytecode_ptr = (const uint8_t*)(*oprnd1);
+        sz = 0;
+        }
       break;
       }
       case asmcode::MOV:
@@ -865,6 +1029,26 @@ void run_bytecode(const uint8_t* bytecode, uint64_t size, registers& regs)
         return;
       bytecode_ptr = (const uint8_t*)address;
       sz = 0;
+      break;
+      }
+      case asmcode::SAL:
+      {
+      execute_operation<ShlOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
+      break;
+      }
+      case asmcode::SAR:
+      {
+      execute_operation<SarOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
+      break;
+      }
+      case asmcode::SHL:
+      {
+      execute_operation<ShlOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
+      break;
+      }
+      case asmcode::SHR:
+      {
+      execute_operation<ShrOper>(operand1, operand2, operand1_mem, operand2_mem, regs);
       break;
       }
       case asmcode::SUB:
