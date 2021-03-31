@@ -994,12 +994,80 @@ void run_bytecode(const uint8_t* bytecode, uint64_t size, registers& regs)
       set_eflags(temp, regs);
       break;
       }
+      case asmcode::JGS:
+      {
+      if ((regs.eflags & sign_flag) == 0)
+        {
+        if (operand1 == asmcode::NUMBER)
+          {
+          int32_t local_offset = (int32_t)operand1_mem;
+          bytecode_ptr += local_offset;
+          sz = 0;
+          }
+        else
+          {
+          throw std::logic_error("jgs not implemented");
+          }
+        }
+      break;
+      }
+      case asmcode::JGES:
+      {
+      if (((regs.eflags & sign_flag)==0) || (regs.eflags & zero_flag))
+        {
+        if (operand1 == asmcode::NUMBER)
+          {
+          int32_t local_offset = (int32_t)operand1_mem;
+          bytecode_ptr += local_offset;
+          sz = 0;
+          }
+        else
+          {
+          throw std::logic_error("jges not implemented");
+          }
+        }
+      break;
+      }
+      case asmcode::JLS:
+      {
+      if (regs.eflags & sign_flag)
+        {
+        if (operand1 == asmcode::NUMBER)
+          {
+          int32_t local_offset = (int32_t)operand1_mem;
+          bytecode_ptr += local_offset;
+          sz = 0;
+          }
+        else
+          {
+          throw std::logic_error("jls not implemented");
+          }
+        }
+      break;
+      }
+      case asmcode::JLES:
+      {
+      if ((regs.eflags & sign_flag) || (regs.eflags & zero_flag))
+        {
+        if (operand1 == asmcode::NUMBER)
+          {
+          int32_t local_offset = (int32_t)operand1_mem;
+          bytecode_ptr += local_offset;
+          sz = 0;
+          }
+        else
+          {
+          throw std::logic_error("jles not implemented");
+          }
+        }
+      break;
+      }
       case asmcode::JMP:
       {
       if (operand1 == asmcode::NUMBER)
         {
-        uint32_t local_offset = (uint32_t)operand1_mem;
-        bytecode_ptr += (int32_t)local_offset;
+        int32_t local_offset = (int32_t)operand1_mem;
+        bytecode_ptr += local_offset;
         sz = 0;
         }
       else

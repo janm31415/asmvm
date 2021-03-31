@@ -429,6 +429,118 @@ namespace
     free_bytecode(f, size);
     }
 
+  void test_vm_jls()
+    {
+    asmcode code;
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::CMP, asmcode::RAX, asmcode::NUMBER, 5);
+    code.add(asmcode::JLS, "L_label");
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 3);
+    code.add(asmcode::RET);
+    code.add(asmcode::LABEL, "L_label");
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 4);
+    code.add(asmcode::RET);
+
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try
+      {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(3, reg.rcx);
+    free_bytecode(f, size);
+    }
+
+  void test_vm_jls_2()
+    {
+    asmcode code;
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::CMP, asmcode::RAX, asmcode::NUMBER, 20);
+    code.add(asmcode::JLS, "L_label");
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 3);
+    code.add(asmcode::RET);
+    code.add(asmcode::LABEL, "L_label");
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 4);
+    code.add(asmcode::RET);
+
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try
+      {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(4, reg.rcx);
+    free_bytecode(f, size);
+    }
+
+  void test_vm_jles()
+    {
+    asmcode code;
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::CMP, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::JLES, "L_label");
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 3);
+    code.add(asmcode::RET);
+    code.add(asmcode::LABEL, "L_label");
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 4);
+    code.add(asmcode::RET);
+
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try
+      {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(4, reg.rcx);
+    free_bytecode(f, size);
+    }
+
+  void test_vm_jges()
+    {
+    asmcode code;
+    code.add(asmcode::MOV, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::CMP, asmcode::RAX, asmcode::NUMBER, 10);
+    code.add(asmcode::JGES, "L_label");
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 3);
+    code.add(asmcode::RET);
+    code.add(asmcode::LABEL, "L_label");
+    code.add(asmcode::MOV, asmcode::RCX, asmcode::NUMBER, 4);
+    code.add(asmcode::RET);
+
+    uint64_t size;
+    uint8_t* f = (uint8_t*)vm_bytecode(size, code);
+    registers reg;
+
+    try
+      {
+      run_bytecode(f, size, reg);
+      }
+    catch (std::logic_error e)
+      {
+      std::cout << e.what() << "\n";
+      }
+    TEST_EQ(4, reg.rcx);
+    free_bytecode(f, size);
+    }
+
   } // namespace
 
 ASM_END
@@ -451,4 +563,8 @@ void run_all_vm_tests()
   test_vm_jmp_aligned();
   test_vm_jmp_register();
   test_vm_shift();
+  test_vm_jls();
+  test_vm_jls_2();
+  test_vm_jles();  
+  test_vm_jges();
   }
